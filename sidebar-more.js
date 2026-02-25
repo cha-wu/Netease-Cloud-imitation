@@ -73,11 +73,16 @@ document.querySelector('.back-icon').addEventListener('click', () => {
 
             searchInput.value = fullValue;
             clearBtn.style.display = 'block';
-            if (window.player) {
+
+            // 使用新的搜索管理器
+            if (window.searchManager) {
+                window.searchManager.performSearch(fullValue);
+            } else if (window.player) {
                 window.player.searchMusic(fullValue);
             } else {
                 performSearch(fullValue);
             }
+
             suggestionsPanel.style.display = 'none';
         });
     });
@@ -85,10 +90,13 @@ document.querySelector('.back-icon').addEventListener('click', () => {
     // 回车搜索
     searchInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
-            if (window.player) {
-                window.player.searchMusic(this.value);
+            // 使用新的搜索管理器
+            if (window.searchManager) {
+                window.searchManager.performSearch(searchInput.value);
+            } else if (window.player) {
+                window.player.searchMusic(searchInput.value);
             } else {
-                performSearch(this.value);
+                performSearch(searchInput.value);
             }
             suggestionsPanel.style.display = 'none';
         }
@@ -121,7 +129,16 @@ document.querySelector('.back-icon').addEventListener('click', () => {
 
     // 返回按钮
     backBtn.addEventListener('click', function () {
-        alert('返回');
+        // 检查是否在搜索结果页面
+        const searchContent = document.getElementById('searchResultContent');
+        if (searchContent && searchContent.style.display === 'block') {
+            // 返回到上一个页面
+            if (window.pageManager) {
+                window.pageManager.goBack();
+            }
+        } else {
+            alert('返回');
+        }
     });
 
     // 更多按钮
@@ -169,10 +186,10 @@ class MusicPlayer {
 
         this.fetchPlaylists();
 
-        // 默认搜索值林俊杰
-        setTimeout(() => {
-            this.searchMusic('林俊杰');
-        }, 1000);
+        // 不再自动搜索，避免页面一打开就跳转到搜索结果页
+        // setTimeout(() => {
+        //     this.searchMusic('林俊杰');
+        // }, 1000);
     }
 
     init() {
@@ -310,6 +327,13 @@ class MusicPlayer {
     async searchMusic(keyword) {
         if (!keyword.trim()) return;
 
+        // 如果搜索管理器已初始化，使用搜索管理器显示搜索结果页面
+        if (window.searchManager) {
+            window.searchManager.performSearch(keyword);
+            return;
+        }
+
+        // 否则，执行原有的简版搜索（加载歌曲到播放器）
         try {
             console.log(`搜索: ${keyword}`);
 
@@ -1413,6 +1437,27 @@ class PageManager {
         this.jingxuanContent = document.getElementById('jingxuanContent');
         this.gedanContent = document.getElementById('gedanContent');
         this.gedanGrid = document.getElementById('gedanGrid');
+        this.searchContent = document.getElementById('searchResultContent');
+
+        // 存储所有歌单数据（用于筛选）
+        this.allPlaylists = [];
+
+        // 当前激活的筛选标签
+        this.currentFilter = '全部';
+
+        // 筛选标签与关键词的映射
+        this.filterKeywords = {
+            '华语': ['华语', '中文', '中国', '港台', '内地', '台湾', '香港', '古风', '国风'],
+            '欧美': ['欧美', '英语', '英文', 'American', 'English', 'US', 'UK', '欧洲', '美国', '英国', '说唱'],
+            '日韩': ['日韩', '日语', '韩语', '日语', 'K-POP', 'J-POP', '韩国', '日本', 'Anime', '动漫'],
+            '流行': ['流行', 'Pop', '流行音乐', '热歌', '新歌', '飙升', '榜'],
+            '摇滚': ['摇滚', 'Rock', '摇滚', '金属', 'Metal', '朋克', 'Punk'],
+            '民谣': ['民谣', 'Folk', '民谣', '吉他', '吉他', '清新'],
+            '电子': ['电子', 'EDM', '电音', '电子音乐', 'DJ', '舞曲', 'House', 'Techno']
+        };
+
+        // 保存上一个页面状态
+        this.lastPage = 'jingxuan'; // 'jingxuan' 或 'gedan'
 
         this.init();
     }
@@ -1442,10 +1487,67 @@ class PageManager {
                 // 激活当前点击
                 chip.classList.add('active');
 
-                // 筛选逻辑
-                console.log('筛选:', chip.textContent);
+                // 获取筛选标签（优先使用 data-filter 属性，回退到 textContent）
+                const filterText = chip.getAttribute('data-filter') || chip.textContent.trim();
+                this.currentFilter = filterText;
+
+                // 执行筛选
+                this.filterPlaylists(filterText);
             });
         });
+    }
+
+    /**
+     * 根据筛选标签过滤歌单
+     * @param {string} filterText - 筛选标签文本
+     */
+    filterPlaylists(filterText) {
+        console.log('🎵 蕾姆正在筛选:', filterText);
+
+        // 如果选择"全部"，显示所有歌单
+        if (filterText === '全部') {
+            this.renderGedanGrid(this.allPlaylists);
+            return;
+        }
+
+        // 根据标签关键词过滤歌单
+        const keywords = this.filterKeywords[filterText] || [];
+        const filteredPlaylists = this.allPlaylists.filter(playlist => {
+            const name = playlist.name.toLowerCase();
+
+            // 检查歌单名称是否包含任何相关关键词
+            return keywords.some(keyword => name.includes(keyword.toLowerCase()));
+        });
+
+        console.log(`✨ 筛选结果: "${filterText}" 找到 ${filteredPlaylists.length} 个歌单`);
+
+        // 渲染筛选后的结果
+        if (filteredPlaylists.length > 0) {
+            this.renderGedanGrid(filteredPlaylists);
+        } else {
+            // 如果没有找到匹配的歌单，显示友好提示
+            this.renderNoResults(filterText);
+        }
+    }
+
+    /**
+     * 渲染"没有找到结果"的提示
+     */
+    renderNoResults(filterText) {
+        if (!this.gedanGrid) return;
+
+        this.gedanGrid.innerHTML = `
+            <div class="no-results" style="
+                grid-column: 1 / -1;
+                text-align: center;
+                padding: 60px 20px;
+                color: #8f9eb5;
+            ">
+                <i class="fas fa-search" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+                <p style="font-size: 16px; margin-bottom: 10px;">没有找到"${filterText}"相关的歌单</p>
+                <p style="font-size: 14px; opacity: 0.7;">试试其他标签吧～</p>
+            </div>
+        `;
     }
 
     switchToJingxuan() {
@@ -1453,9 +1555,24 @@ class PageManager {
         this.chipJingxuan.classList.add('highlight');
         this.chipGedan.classList.remove('highlight');
 
+        // 显示 content-pane（包含精选标签和内容）
+        const contentPane = document.querySelector('.content-pane');
+        if (contentPane) {
+            contentPane.style.display = 'block';
+        }
+
         // 切换内容
         this.jingxuanContent.style.display = 'block';
         this.gedanContent.style.display = 'none';
+
+        // 隐藏搜索结果
+        const searchContent = document.getElementById('searchResultContent');
+        if (searchContent) {
+            searchContent.style.display = 'none';
+        }
+
+        // 保存当前页面状态
+        this.lastPage = 'jingxuan';
     }
 
     switchToGedan() {
@@ -1463,9 +1580,35 @@ class PageManager {
         this.chipGedan.classList.add('highlight');
         this.chipJingxuan.classList.remove('highlight');
 
+        // 显示 content-pane（包含精选标签和内容）
+        const contentPane = document.querySelector('.content-pane');
+        if (contentPane) {
+            contentPane.style.display = 'block';
+        }
+
         // 切换内容显示
         this.jingxuanContent.style.display = 'none';
         this.gedanContent.style.display = 'block';
+
+        // 隐藏搜索结果
+        const searchContent = document.getElementById('searchResultContent');
+        if (searchContent) {
+            searchContent.style.display = 'none';
+        }
+
+        // 保存当前页面状态
+        this.lastPage = 'gedan';
+    }
+
+    /**
+     * 返回上一个页面
+     */
+    goBack() {
+        if (this.lastPage === 'jingxuan') {
+            this.switchToJingxuan();
+        } else {
+            this.switchToGedan();
+        }
     }
 
     async loadGedanData() {
@@ -1531,6 +1674,8 @@ class PageManager {
             }
 
             if (playlists.length > 0) {
+                // 保存所有歌单数据用于筛选
+                this.allPlaylists = playlists;
                 this.renderGedanGrid(playlists);
             } else {
                 this.renderFallbackGedan();
@@ -1544,12 +1689,17 @@ class PageManager {
     renderGedanGrid(playlists) {
         if (!this.gedanGrid) return;
 
+        // 添加淡入动画效果
+        this.gedanGrid.style.opacity = '0';
+        this.gedanGrid.style.transform = 'translateY(10px)';
+        this.gedanGrid.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+
         this.gedanGrid.innerHTML = playlists.map(playlist => `
             <div class="music-card" data-id="${playlist.id}">
                 <div class="card-img">
                     <img src="${playlist.cover}" alt="${playlist.name}" loading="lazy">
                     <span class="play-count"><i class="fas fa-headphones"></i> ${playlist.playCount}</span>
-                    
+
                     <div class="card-overlay">
                         <div class="play-overlay-btn" onclick="event.stopPropagation(); window.player && window.player.playPlaylistFirst('${playlist.id}')">
                             <i class="fas fa-play"></i>
@@ -1565,15 +1715,26 @@ class PageManager {
 
         // 添加分页
         this.addPagination();
+
+        // 触发重排后添加动画类
+        requestAnimationFrame(() => {
+            this.gedanGrid.style.opacity = '1';
+            this.gedanGrid.style.transform = 'translateY(0)';
+        });
     }
 
     renderFallbackGedan() {
         if (!this.gedanGrid) return;
 
+        // 添加淡入动画效果
+        this.gedanGrid.style.opacity = '0';
+        this.gedanGrid.style.transform = 'translateY(10px)';
+        this.gedanGrid.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+
         const fallbackPlaylists = [
             {
                 id: '1',
-                name: '热歌榜',
+                name: '华语热歌榜',
                 cover: 'https://picsum.photos/200/200?random=101',
                 playCount: '556.8万',
                 trackCount: 50
@@ -1587,7 +1748,7 @@ class PageManager {
             },
             {
                 id: '3',
-                name: '电子音乐',
+                name: '电子音乐精选',
                 cover: 'https://picsum.photos/200/200?random=103',
                 playCount: '189.3万',
                 trackCount: 45
@@ -1608,33 +1769,64 @@ class PageManager {
             },
             {
                 id: '6',
-                name: '流行音乐',
+                name: '欧美流行音乐',
                 cover: 'https://picsum.photos/200/200?random=106',
                 playCount: '789.4万',
                 trackCount: 60
             },
             {
                 id: '7',
-                name: '经典老歌',
+                name: '经典民谣合集',
                 cover: 'https://picsum.photos/200/200?random=107',
                 playCount: '654.3万',
                 trackCount: 55
             },
             {
                 id: '8',
-                name: '摇滚合集',
+                name: '摇滚精神',
                 cover: 'https://picsum.photos/200/200?random=108',
                 playCount: '321.5万',
                 trackCount: 42
+            },
+            {
+                id: '9',
+                name: '日语动漫金曲',
+                cover: 'https://picsum.photos/200/200?random=109',
+                playCount: '456.2万',
+                trackCount: 38
+            },
+            {
+                id: '10',
+                name: '韩流K-POP',
+                cover: 'https://picsum.photos/200/200?random=110',
+                playCount: '678.9万',
+                trackCount: 52
+            },
+            {
+                id: '11',
+                name: '华语民谣',
+                cover: 'https://picsum.photos/200/200?random=111',
+                playCount: '234.5万',
+                trackCount: 47
+            },
+            {
+                id: '12',
+                name: 'EDM电音派对',
+                cover: 'https://picsum.photos/200/200?random=112',
+                playCount: '345.6万',
+                trackCount: 35
             }
         ];
+
+        // 保存到 allPlaylists 以支持筛选
+        this.allPlaylists = fallbackPlaylists;
 
         this.gedanGrid.innerHTML = fallbackPlaylists.map(playlist => `
             <div class="music-card" data-id="${playlist.id}">
                 <div class="card-img">
                     <img src="${playlist.cover}" alt="${playlist.name}" loading="lazy">
                     <span class="play-count"><i class="fas fa-headphones"></i> ${playlist.playCount}</span>
-                    
+
                     <div class="card-overlay">
                         <div class="play-overlay-btn" onclick="event.stopPropagation(); window.player && window.player.playPlaylistFirst('${playlist.id}')">
                             <i class="fas fa-play"></i>
@@ -1649,6 +1841,12 @@ class PageManager {
         `).join('');
 
         this.addPagination();
+
+        // 触发重排后添加动画类
+        requestAnimationFrame(() => {
+            this.gedanGrid.style.opacity = '1';
+            this.gedanGrid.style.transform = 'translateY(0)';
+        });
     }
 
     addPagination() {
@@ -1688,4 +1886,605 @@ document.addEventListener('DOMContentLoaded', function () {
         window.pageManager = new PageManager();
         console.log('页面管理器初始化成功');
     }, 600);
+
+    // 初始化搜索管理器
+    setTimeout(() => {
+        window.searchManager = new SearchResultManager();
+        console.log('搜索管理器初始化成功');
+    }, 700);
 });
+
+// ==================== 搜索结果管理器 ====================
+class SearchResultManager {
+    constructor() {
+        this.apiBase = 'http://localhost:3000';
+        this.currentKeyword = '';
+        this.currentType = 'all';
+        this.searchData = {
+            songs: [],
+            artists: [],
+            albums: [],
+            playlists: [],
+            videos: []
+        };
+
+        // 不在构造函数中缓存 DOM 元素，改为在需要时动态获取
+        // 这样可以避免初始化时机问题
+
+        this.initTabs();
+    }
+
+    /**
+     * 初始化搜索分类标签
+     */
+    initTabs() {
+        const tabs = document.querySelectorAll('.search-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 移除所有激活状态
+                tabs.forEach(t => t.classList.remove('active'));
+                // 激活当前标签
+                tab.classList.add('active');
+
+                // 切换搜索类型
+                this.currentType = tab.getAttribute('data-type');
+                this.renderByType();
+            });
+        });
+    }
+
+    /**
+     * 执行搜索
+     * @param {string} keyword - 搜索关键词
+     */
+    async performSearch(keyword) {
+        if (!keyword.trim()) return;
+
+        this.currentKeyword = keyword;
+        console.log(`🔍 开始搜索: ${keyword}`);
+
+        // 显示搜索结果页面
+        this.showSearchPage();
+        this.showLoading();
+
+        try {
+            // 并发请求所有类型的搜索结果
+            const [songsResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
+                this.fetchSongs(keyword),
+                this.fetchArtists(keyword),
+                this.fetchAlbums(keyword),
+                this.fetchPlaylists(keyword)
+            ]);
+
+            // 保存搜索数据
+            this.searchData = {
+                songs: songsResult || [],
+                artists: artistsResult || [],
+                albums: albumsResult || [],
+                playlists: playlistsResult || [],
+                videos: [] // 视频搜索暂不实现
+            };
+
+            // 渲染综合搜索结果
+            this.renderAllResults();
+
+        } catch (error) {
+            console.error('搜索失败:', error);
+            this.renderError();
+        }
+    }
+
+    /**
+     * 显示搜索页面
+     */
+    showSearchPage() {
+        // 隐藏 content-pane（包含精选标签行和所有内容）
+        const contentPane = document.querySelector('.content-pane');
+        if (contentPane) {
+            contentPane.style.display = 'none';
+        }
+
+        // 显示搜索结果页面
+        const searchContent = document.getElementById('searchResultContent');
+        if (searchContent) {
+            searchContent.style.display = 'block';
+        } else {
+            console.warn('searchResultContent 元素未找到');
+        }
+
+        // 更新搜索关键词显示
+        const searchTermEl = document.getElementById('searchTerm');
+        if (searchTermEl) {
+            searchTermEl.textContent = this.currentKeyword;
+        }
+    }
+
+    /**
+     * 显示加载动画
+     */
+    showLoading() {
+        // 在 searchAllContent 前面插入加载动画，而不是清空它
+        const searchAllContent = document.getElementById('searchAllContent');
+        if (!searchAllContent) {
+            console.warn('searchAllContent 元素未找到');
+            return;
+        }
+
+        // 先移除已存在的加载动画
+        const existingLoader = document.getElementById('searchLoadingSpinner');
+        if (existingLoader) {
+            existingLoader.remove();
+        }
+
+        // 创建加载动画
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'searchLoadingSpinner';
+        loadingDiv.className = 'loading-spinner';
+        loadingDiv.innerHTML = '<div class="spinner"></div>';
+
+        // 插入到 searchAllContent 的最前面
+        searchAllContent.insertBefore(loadingDiv, searchAllContent.firstChild);
+
+        // 隐藏所有内容区块，只显示加载动画
+        const sections = searchAllContent.querySelectorAll('.search-section');
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+    }
+
+    /**
+     * 隐藏加载动画，显示内容
+     */
+    hideLoading() {
+        const searchAllContent = document.getElementById('searchAllContent');
+        if (!searchAllContent) return;
+
+        // 移除加载动画
+        const loadingSpinner = document.getElementById('searchLoadingSpinner');
+        if (loadingSpinner) {
+            loadingSpinner.remove();
+        }
+
+        // 显示所有内容区块
+        const sections = searchAllContent.querySelectorAll('.search-section');
+        sections.forEach(section => {
+            section.style.display = 'block';
+        });
+    }
+
+    /**
+     * 渲染错误
+     */
+    renderError() {
+        if (this.searchAllContent) {
+            this.searchAllContent.innerHTML = `
+                <div class="search-no-results">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>搜索出错，请稍后重试</p>
+                    <small>可能是网络连接或API服务问题</small>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * 渲染综合搜索结果
+     */
+    renderAllResults() {
+        // 先隐藏加载动画
+        this.hideLoading();
+
+        if (this.searchAllContent) {
+            this.searchAllContent.style.display = 'block';
+        }
+        if (this.searchSingleContent) {
+            this.searchSingleContent.style.display = 'none';
+        }
+
+        // 渲染各个部分
+        this.renderBestMatch();
+        this.renderSongs();
+        this.renderArtists();
+        this.renderAlbums();
+        this.renderPlaylists();
+    }
+
+    /**
+     * 根据类型渲染
+     */
+    renderByType() {
+        if (this.currentType === 'all') {
+            this.renderAllResults();
+            return;
+        }
+
+        // 显示单类型内容
+        if (this.searchAllContent) this.searchAllContent.style.display = 'none';
+        if (this.searchSingleContent) this.searchSingleContent.style.display = 'block';
+
+        const typeMap = {
+            'songs': { data: this.searchData.songs, title: '歌曲' },
+            'artists': { data: this.searchData.artists, title: '歌手' },
+            'albums': { data: this.searchData.albums, title: '专辑' },
+            'playlists': { data: this.searchData.playlists, title: '歌单' },
+            'videos': { data: this.searchData.videos, title: '视频' }
+        };
+
+        const current = typeMap[this.currentType];
+        if (!current) return;
+
+        this.renderSingleType(current.data, current.title);
+    }
+
+    /**
+     * 渲染单类型结果
+     */
+    renderSingleType(data, title) {
+        if (!this.searchSingleContent) return;
+
+        if (data.length === 0) {
+            this.searchSingleContent.innerHTML = `
+                <div class="search-no-results">
+                    <i class="fas fa-search"></i>
+                    <p>没有找到相关的${title}</p>
+                    <small>试试其他关键词吧～</small>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+
+        switch (this.currentType) {
+            case 'songs':
+                html = `<div class="song-list">${data.map((song, index) => this.renderSongItem(song, index)).join('')}</div>`;
+                break;
+            case 'artists':
+                html = `<div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));">
+                    ${data.map(artist => this.renderArtistCard(artist)).join('')}
+                </div>`;
+                break;
+            case 'albums':
+                html = `<div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));">
+                    ${data.map(album => this.renderAlbumCard(album)).join('')}
+                </div>`;
+                break;
+            case 'playlists':
+                html = `<div class="card-grid">${data.map(playlist => this.renderPlaylistCard(playlist)).join('')}</div>`;
+                break;
+            default:
+                html = `<div class="search-no-results"><p>暂不支持该类型</p></div>`;
+        }
+
+        this.searchSingleContent.innerHTML = html;
+    }
+
+    /**
+     * 渲染最佳匹配
+     */
+    renderBestMatch() {
+        const bestMatchCard = document.getElementById('bestMatchCard');
+        if (!bestMatchCard) {
+            console.warn('bestMatchCard 元素未找到');
+            return;
+        }
+
+        // 优先显示歌手，然后是专辑，最后是歌曲
+        let bestMatch = null;
+        let matchType = '';
+
+        if (this.searchData.artists.length > 0) {
+            bestMatch = this.searchData.artists[0];
+            matchType = 'artist';
+        } else if (this.searchData.albums.length > 0) {
+            bestMatch = this.searchData.albums[0];
+            matchType = 'album';
+        } else if (this.searchData.songs.length > 0) {
+            bestMatch = this.searchData.songs[0];
+            matchType = 'song';
+        }
+
+        if (!bestMatch) {
+            bestMatchCard.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        switch (matchType) {
+            case 'artist':
+                html = `
+                    <div class="best-match-cover">
+                        <img src="${bestMatch.picUrl || bestMatch.img1v1Url}" alt="${bestMatch.name}">
+                    </div>
+                    <div class="best-match-info">
+                        <div class="best-match-type">歌手:${bestMatch.name}</div>
+                        <div class="best-match-name"></div>
+                        <div class="best-match-desc">${this.formatNumber(bestMatch.followers || bestMatch.playlistCount)} 粉丝 · ${bestMatch.albumSize || 0} 专辑</div>
+                    </div>
+                `;
+                break;
+            case 'album':
+                html = `
+                    <div class="best-match-cover">
+                        <img src="${bestMatch.picUrl}" alt="${bestMatch.name}">
+                    </div>
+                    <div class="best-match-info">
+                        <div class="best-match-type">专辑</div>
+                        <div class="best-match-name">${bestMatch.name}</div>
+                        <div class="best-match-desc">${bestMatch.artist.name} · ${bestMatch.size || 0} 首歌曲</div>
+                    </div>
+                `;
+                break;
+            case 'song':
+                html = `
+                    <div class="best-match-cover">
+                        <img src="${bestMatch.album.picUrl}" alt="${bestMatch.name}">
+                    </div>
+                    <div class="best-match-info">
+                        <div class="best-match-type">歌曲</div>
+                        <div class="best-match-name">${bestMatch.name}</div>
+                        <div class="best-match-desc">${bestMatch.artists.map(a => a.name).join(' / ')} · ${bestMatch.album.name}</div>
+                    </div>
+                `;
+                break;
+        }
+
+        bestMatchCard.innerHTML = html;
+    }
+
+    /**
+     * 渲染歌曲列表
+     */
+    renderSongs() {
+        const searchSongList = document.getElementById('searchSongList');
+        if (!searchSongList) {
+            console.warn('searchSongList 元素未找到');
+            return;
+        }
+
+        const songs = this.searchData.songs.slice(0, 10); // 只显示前10首
+
+        if (songs.length === 0) {
+            searchSongList.innerHTML = '<p style="padding: 20px; color: #8f9eb5; text-align: center;">暂无歌曲</p>';
+            return;
+        }
+
+        searchSongList.innerHTML = songs.map((song, index) => this.renderSongItem(song, index)).join('');
+    }
+
+    /**
+     * 渲染单个歌曲项
+     */
+    renderSongItem(song, index) {
+        const coverUrl = song.album?.picUrl || song.cover || `https://picsum.photos/48/48?random=${song.id}`;
+        const artistNames = song.artists?.map(a => a.name).join(' / ') || song.artist || '未知';
+        const albumName = song.album?.name || '未知专辑';
+        const duration = this.formatDuration(song.duration || song.dt || 0);
+
+        return `
+            <div class="song-list-item" onclick="window.player && window.player.playSearchResult(${index})">
+                <div class="song-index">${index + 1}</div>
+                <div class="song-list-cover">
+                    <img src="${coverUrl}" alt="${song.name}">
+                </div>
+                <div class="song-list-info">
+                    <div class="song-list-title">${song.name}</div>
+                    <div class="song-list-meta">
+                        <span>${artistNames}</span>
+                        <span>${albumName}</span>
+                    </div>
+                </div>
+                <div class="song-list-duration">${duration}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染歌手列表
+     */
+    renderArtists() {
+        const searchArtistList = document.getElementById('searchArtistList');
+        if (!searchArtistList) {
+            console.warn('searchArtistList 元素未找到');
+            return;
+        }
+
+        const artists = this.searchData.artists.slice(0, 8);
+
+        if (artists.length === 0) {
+            searchArtistList.innerHTML = '<p style="padding: 20px; color: #8f9eb5; text-align: center;">暂无歌手</p>';
+            return;
+        }
+
+        searchArtistList.innerHTML = artists.map(artist => this.renderArtistCard(artist)).join('');
+    }
+
+    /**
+     * 渲染单个歌手卡片
+     */
+    renderArtistCard(artist) {
+        const picUrl = artist.picUrl || artist.img1v1Url || `https://picsum.photos/140/140?random=${artist.id}`;
+        const followers = this.formatNumber(artist.followers || artist.playlistCount || 0);
+
+        return `
+            <div class="artist-card" onclick="window.player && window.player.playArtist('${artist.id}')">
+                <div class="artist-cover">
+                    <img src="${picUrl}" alt="${artist.name}">
+                </div>
+                <div class="artist-name">${artist.name}</div>
+                <div class="artist-followers">${followers} 粉丝</div>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染专辑列表
+     */
+    renderAlbums() {
+        const searchAlbumList = document.getElementById('searchAlbumList');
+        if (!searchAlbumList) {
+            console.warn('searchAlbumList 元素未找到');
+            return;
+        }
+
+        const albums = this.searchData.albums.slice(0, 8);
+
+        if (albums.length === 0) {
+            searchAlbumList.innerHTML = '<p style="padding: 20px; color: #8f9eb5; text-align: center;">暂无专辑</p>';
+            return;
+        }
+
+        searchAlbumList.innerHTML = albums.map(album => this.renderAlbumCard(album)).join('');
+    }
+
+    /**
+     * 渲染单个专辑卡片
+     */
+    renderAlbumCard(album) {
+        const picUrl = album.picUrl || album.blurPicUrl || `https://picsum.photos/160/160?random=${album.id}`;
+        const artistName = album.artist?.name || album.artists?.map(a => a.name).join(' / ') || '未知';
+
+        return `
+            <div class="album-card" onclick="window.player && window.player.playAlbum('${album.id}')">
+                <div class="album-cover">
+                    <img src="${picUrl}" alt="${album.name}">
+                </div>
+                <div class="album-name">${album.name}</div>
+                <div class="album-artist">${artistName}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染歌单列表
+     */
+    renderPlaylists() {
+        const searchPlaylistGrid = document.getElementById('searchPlaylistGrid');
+        if (!searchPlaylistGrid) {
+            console.warn('searchPlaylistGrid 元素未找到');
+            return;
+        }
+
+        const playlists = this.searchData.playlists.slice(0, 6);
+
+        if (playlists.length === 0) {
+            const section = document.getElementById('playlistSection');
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        const section = document.getElementById('playlistSection');
+        if (section) section.style.display = 'block';
+
+        searchPlaylistGrid.innerHTML = playlists.map(playlist => this.renderPlaylistCard(playlist)).join('');
+    }
+
+    /**
+     * 渲染单个歌单卡片
+     */
+    renderPlaylistCard(playlist) {
+        const coverUrl = playlist.coverImgUrl || playlist.cover || `https://picsum.photos/200/200?random=${playlist.id}`;
+        const playCount = this.formatNumber(playlist.playCount || 0);
+
+        return `
+            <div class="music-card" data-id="${playlist.id}">
+                <div class="card-img">
+                    <img src="${coverUrl}" alt="${playlist.name}" loading="lazy">
+                    <span class="play-count"><i class="fas fa-headphones"></i> ${playCount}</span>
+                    <div class="card-overlay">
+                        <div class="play-overlay-btn" onclick="event.stopPropagation(); window.player && window.player.playPlaylistFirst('${playlist.id}')">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-info">
+                    <h4>${playlist.name}</h4>
+                    <p><i class="fas fa-music"></i> ${playlist.trackCount || 0}首</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // ==================== API 请求 ====================
+
+    /**
+     * 搜索歌曲
+     */
+    async fetchSongs(keyword) {
+        try {
+            const response = await fetch(`${this.apiBase}/search?keywords=${encodeURIComponent(keyword)}&type=1&limit=20`);
+            const data = await response.json();
+            return data.result?.songs || [];
+        } catch (e) {
+            console.error('搜索歌曲失败:', e);
+            return [];
+        }
+    }
+
+    /**
+     * 搜索歌手
+     */
+    async fetchArtists(keyword) {
+        try {
+            const response = await fetch(`${this.apiBase}/search?keywords=${encodeURIComponent(keyword)}&type=100&limit=20`);
+            const data = await response.json();
+            return data.result?.artists || [];
+        } catch (e) {
+            console.error('搜索歌手失败:', e);
+            return [];
+        }
+    }
+
+    /**
+     * 搜索专辑
+     */
+    async fetchAlbums(keyword) {
+        try {
+            const response = await fetch(`${this.apiBase}/search?keywords=${encodeURIComponent(keyword)}&type=10&limit=20`);
+            const data = await response.json();
+            return data.result?.albums || [];
+        } catch (e) {
+            console.error('搜索专辑失败:', e);
+            return [];
+        }
+    }
+
+    /**
+     * 搜索歌单
+     */
+    async fetchPlaylists(keyword) {
+        try {
+            const response = await fetch(`${this.apiBase}/search?keywords=${encodeURIComponent(keyword)}&type=1000&limit=20`);
+            const data = await response.json();
+            return data.result?.playlists || [];
+        } catch (e) {
+            console.error('搜索歌单失败:', e);
+            return [];
+        }
+    }
+
+    // ==================== 工具函数 ====================
+
+    /**
+     * 格式化数字
+     */
+    formatNumber(num) {
+        if (!num) return '0';
+        if (num >= 100000000) {
+            return (num / 100000000).toFixed(1) + '亿';
+        } else if (num >= 10000) {
+            return (num / 10000).toFixed(1) + '万';
+        }
+        return num.toString();
+    }
+
+    /**
+     * 格式化时长
+     */
+    formatDuration(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+}

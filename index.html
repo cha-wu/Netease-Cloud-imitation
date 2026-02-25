@@ -174,6 +174,96 @@
             </div>
         </div>
 
+        <!-- 搜索结果页面 -->
+        <div id="searchResultContent" style="display: none;">
+            <!-- 搜索标题 -->
+            <div class="search-result-header">
+                <div class="search-keyword">
+                    <span class="search-term" id="searchTerm"></span>
+                </div>
+            </div>
+
+            <!-- 分类标签 -->
+            <div class="search-tab-row">
+                <span class="search-tab active" data-type="all">综合</span>
+                <span class="search-tab" data-type="songs">歌曲</span>
+                <span class="search-tab" data-type="artists">歌手</span>
+                <span class="search-tab" data-type="albums">专辑</span>
+                <span class="search-tab" data-type="playlists">歌单</span>
+                <span class="search-tab" data-type="videos">视频</span>
+            </div>
+
+            <!-- 综合搜索结果 -->
+            <div id="searchAllContent">
+                <!-- 最佳匹配 -->
+                <div class="search-section" id="bestMatchSection">
+                    <div class="section-header">
+                    </div>
+                    <div class="best-match-card" id="bestMatchCard">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 歌曲 -->
+                <div class="search-section">
+                    <div class="section-header">
+                        <h3>单曲 <i class="fas fa-chevron-right" style="font-size: 12px;"></i></h3>
+                        <a href="#" class="see-all" id="seeAllSongs">查看全部</a>
+                    </div>
+                    <div class="best-match-btn" onclick="window.player && window.player.playAlbum('${bestMatch.id}')">
+                            <i class="fas fa-play"></i> 播放
+                    </div>
+                    <div class="song-list" id="searchSongList">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 歌手 -->
+                <div class="search-section" id="artistSection">
+                    <div class="section-header">
+                        <h3>歌手 <i class="fas fa-chevron-right" style="font-size: 12px;"></i></h3>
+                    </div>
+                    <div class="artist-scroll-row" id="searchArtistList">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 专辑 -->
+                <div class="search-section" id="albumSection">
+                    <div class="section-header">
+                        <h3>专辑 <i class="fas fa-chevron-right" style="font-size: 12px;"></i></h3>
+                    </div>
+                    <div class="album-scroll-row" id="searchAlbumList">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 歌单 -->
+                <div class="search-section" id="playlistSection">
+                    <div class="section-header">
+                        <h3>歌单 <i class="fas fa-chevron-right" style="font-size: 12px;"></i></h3>
+                    </div>
+                    <div class="card-grid" id="searchPlaylistGrid">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 视频 -->
+                <div class="search-section" id="videoSection">
+                    <div class="section-header">
+                        <h3>视频 <i class="fas fa-chevron-right" style="font-size: 12px;"></i></h3>
+                    </div>
+                    <div class="video-grid" id="searchVideoGrid">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 单类型搜索结果容器 -->
+            <div id="searchSingleContent" style="display: none;">
+                <!-- 动态加载 -->
+            </div>
+        </div>
 
         <div class="content-pane">
             <!-- 精选标签行 -->
@@ -185,7 +275,7 @@
                 <span class="chip">VIP</span>
             </div>
 
-            <!-- 动态内容容器 - 恢复这个 -->
+            <!-- 动态内容容器 -->
             <div id="dynamicContent">
                 <!-- 精选内容 -->
                 <div id="jingxuanContent"> <!-- 恢复 id -->
@@ -240,14 +330,14 @@
 
                     <!-- 筛选标签 -->
                     <div class="filter-row">
-                        <span class="filter-chip active">全部</span>
-                        <span class="filter-chip">华语</span>
-                        <span class="filter-chip">欧美</span>
-                        <span class="filter-chip">日韩</span>
-                        <span class="filter-chip">流行</span>
-                        <span class="filter-chip">摇滚</span>
-                        <span class="filter-chip">民谣</span>
-                        <span class="filter-chip">电子</span>
+                        <span class="filter-chip active" data-filter="全部">全部</span>
+                        <span class="filter-chip" data-filter="华语">华语</span>
+                        <span class="filter-chip" data-filter="欧美">欧美</span>
+                        <span class="filter-chip" data-filter="日韩">日韩</span>
+                        <span class="filter-chip" data-filter="流行">流行</span>
+                        <span class="filter-chip" data-filter="摇滚">摇滚</span>
+                        <span class="filter-chip" data-filter="民谣">民谣</span>
+                        <span class="filter-chip" data-filter="电子">电子</span>
                     </div>
 
                     <!-- 歌单网格 -->

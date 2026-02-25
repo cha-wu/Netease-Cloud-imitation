@@ -1118,3 +1118,477 @@ body {
     color: white;
     border-color: #d14444;
 }
+
+/* ==================== 搜索结果页面样式 ==================== */
+
+/* 搜索结果页面容器 - 独立于 content-pane */
+#searchResultContent {
+    padding: 2px 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 搜索结果头部 */
+.search-result-header {
+    padding: 20px 0;
+}
+
+.search-keyword {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+}
+
+.search-label {
+    color: #8f9eb5;
+    font-weight: normal;
+}
+
+.search-term {
+    padding-left:8px ;
+}
+/* 搜索分类标签 */
+.search-tab-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 3px;
+    padding-bottom: 12px;
+}
+
+.search-tab {
+    padding: 8px 20px;
+    background: transparent;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 15px;
+    color: #4a5568;
+    position: relative;
+}
+
+.search-tab:hover {
+    color: #000000;
+} 
+
+.search-tab.active {
+    color: #000000;
+    font-weight: 600;
+}
+
+.search-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 3px;
+    background: #d14444;
+    border-radius: 2px;
+}
+
+/* 搜索区块 */
+.search-section {
+    margin-bottom: 40px;
+}
+
+.search-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.search-section .section-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.see-all {
+    font-size: 13px;
+    color: #8f9eb5;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.see-all:hover {
+    color: #d14444;
+}
+
+/* 最佳匹配卡片 */
+.best-match-card {
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.best-match-cover {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.best-match-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.best-match-info {
+    flex: 1;
+    height: 60px;
+}
+
+.best-match-type {
+    padding-top: 10px;
+    font-size: 15px;
+    opacity: 0.8;
+    margin-bottom: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.best-match-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.best-match-desc {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 16px;
+}
+
+.best-match-btn {
+    display: inline-block;
+    padding: 4px 8px;
+    background: rgb(242, 242, 242);
+    color: #46474a;
+    border-radius: 24px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border:#d7d9dd;
+    border-style: ridge;
+    border-width: 0.05px;
+}
+
+/* 搜索结果 - 歌曲列表 */
+.song-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.song-list-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.song-list-item:hover {
+    background: #f7fafc;
+}
+
+.song-index {
+    width: 30px;
+    text-align: center;
+    color: #8f9eb5;
+    font-size: 14px;
+}
+
+.song-list-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-right: 12px;
+}
+
+.song-list-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.song-list-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.song-list-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.song-list-meta {
+    font-size: 12px;
+    color: #8f9eb5;
+}
+
+.song-list-meta span {
+    margin-right: 12px;
+}
+
+.song-list-duration {
+    color: #8f9eb5;
+    font-size: 13px;
+}
+
+/* 搜索结果 - 歌手横向滚动 */
+.artist-scroll-row,
+.album-scroll-row {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 transparent;
+}
+
+.artist-scroll-row::-webkit-scrollbar,
+.album-scroll-row::-webkit-scrollbar {
+    height: 6px;
+}
+
+.artist-scroll-row::-webkit-scrollbar-thumb,
+.album-scroll-row::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+.artist-card {
+    flex-shrink: 0;
+    width: 140px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.artist-card:hover {
+    transform: translateY(-4px);
+}
+
+.artist-cover {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 12px;
+    border: 3px solid white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.artist-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.artist-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.artist-followers {
+    font-size: 12px;
+    color: #8f9eb5;
+}
+
+/* 搜索结果 - 专辑横向滚动 */
+.album-card {
+    flex-shrink: 0;
+    width: 160px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.album-card:hover {
+    transform: translateY(-4px);
+}
+
+.album-cover {
+    width: 160px;
+    height: 160px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.album-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.album-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.album-artist {
+    font-size: 12px;
+    color: #8f9eb5;
+}
+
+/* 搜索结果 - 视频网格 */
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.video-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.video-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.video-cover {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 aspect ratio */
+    background: #f7fafc;
+    overflow: hidden;
+}
+
+.video-cover img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-play-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #d14444;
+    font-size: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.video-duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+.video-info {
+    padding: 12px;
+}
+
+.video-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.video-creator {
+    font-size: 12px;
+    color: #8f9eb5;
+}
+
+.video-play-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #8f9eb5;
+    margin-top: 6px;
+}
+
+/* 加载动画 */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 20px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #d14444;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 无结果提示 */
+.search-no-results {
+    text-align: center;
+    padding: 80px 20px;
+    color: #8f9eb5;
+}
+
+.search-no-results i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.search-no-results p {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.search-no-results small {
+    font-size: 14px;
+}
